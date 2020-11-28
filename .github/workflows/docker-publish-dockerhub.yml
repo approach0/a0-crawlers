@@ -1,0 +1,38 @@
+# EDIT this workflow name
+name: Push to DockerHub
+
+on:
+  push:
+    branches: [ deploy ]
+    tags: [ 'v*' ]
+
+env:
+  # EDIT this env variable
+  IMAGE_ID: docker.io/approach0/a0-crawlers
+
+jobs:
+
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build image
+      run: docker build . --file Dockerfile --tag tmp
+
+    # EDIT this Docker registry credentials
+    - name: Docker registry login
+      run: echo "${{ secrets.DOCKERHUBPASSWORD }}" | docker login docker.io -u approach0 --password-stdin
+
+    - name: Push image
+      run: |
+        # Example "ref": "refs/tags/0.3.1"
+        VERSION=$(echo "${{ github.ref }}" | sed -e 's@.*/\(.*\)@\1@')
+        [ "$VERSION" == "deploy" ] && VERSION=latest
+
+        echo IMAGE_ID=$IMAGE_ID
+        echo VERSION=$VERSION
+
+        docker tag tmp $IMAGE_ID:$VERSION
+        docker push $IMAGE_ID:$VERSION
