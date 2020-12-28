@@ -74,8 +74,8 @@ def extract_p_tag_text(soup: BeautifulSoup) -> str:
 def extract_comments_text(soup: BeautifulSoup) -> str:
     return "".join(
         f"{span.text}\n"
-        for span in div.find_all("span", class_="comment-copy")
         for div in soup.find_all("div", class_="comments")
+        for span in div.find_all("span", class_="comment-copy")
     )
 
 
