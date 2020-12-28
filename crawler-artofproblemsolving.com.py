@@ -97,7 +97,12 @@ def parse_op_name(obj):
 # In AoPS post_canonical field, some weird LaTeX macro are used,
 # we need to replace them to commonly used LaTeX symbols.
 def convert_canonical_tex(s: str) -> str:
-    return s.replace("\\minus{}", "-").replace("\\plus{}", "+").replace("\\equal{}", "=").replace("\\/", "/")
+    return (
+        s.replace("\\minus{}", "-")
+        .replace("\\plus{}", "+")
+        .replace("\\equal{}", "=")
+        .replace("\\/", "/")
+    )
 
 
 def parse_node(node):
@@ -154,7 +159,9 @@ def crawl_topic_page(sub_url, category_id, topic_id, c, extra_opt):
         raise
 
     parsed = get_aops_data(topic_page)
-    topic_data = parsed["AoPS.bootstrap_data"]["preload_cmty_data"]["topic_data"]
+    topic_data = parsed["AoPS.bootstrap_data"]["preload_cmty_data"][
+        "topic_data"
+    ]
     session_data = parsed["AoPS.session"]
 
     # get title
@@ -277,7 +284,13 @@ def list_category_topics(category, newest, oldest, c):
     fetch_before = server_time - newest * 24 * 60 * 60
     while fetch_before >= fetch_after:
         print(vt100_BLUE)
-        print(f'[category] {category}, [before] {time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(fetch_before))}, [after] {time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(fetch_after))} ')
+        print(
+            f"[category] {category},",
+            "[before]",
+            f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(fetch_before))},',
+            "[after]",
+            time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(fetch_after)),
+        )
         print(vt100_RESET)
         sub_url = "/m/community/ajax.php"
 
