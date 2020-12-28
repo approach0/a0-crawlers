@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from _typeshed import AnyPath
 import time
 import pycurl
 import certifi
@@ -99,7 +98,11 @@ def crawl_post_page(sub_url: str, c: pycurl.Curl) -> Tuple[str, List[str]]:
     post_txt += (
         f"{extract_p_tag_text(question)}\n{extract_comments_text(question)}\n"
     )
+    post_txt += extract_p_tag_text(question)
+    post_txt += '\n'
     # get question comments
+    post_txt += extract_comments_text(question)
+    post_txt += '\n'
 
     # get post tags
     tags = question.find_all("a", class_="post-tag")
@@ -112,14 +115,15 @@ def crawl_post_page(sub_url: str, c: pycurl.Curl) -> Tuple[str, List[str]]:
     if answers is None:
         raise Exception("answers tag is None")
     for answer in answers.findAll("div", {"class": "answer"}):
-        post_txt += (
-            f"{extract_p_tag_text(answer)}\n{extract_comments_text(answer)}\n"
-        )
+        post_txt += extract_p_tag_text(answer)
+        post_txt += '\n'
         # get answer comments
+        post_txt += extract_comments_text(answer)
+        post_txt += '\n'
     return post_txt, taglist
 
 
-def mkdir_p(path: AnyPath):
+def mkdir_p(path: str):
     try:
         os.makedirs(path)
     except OSError as e:
@@ -129,7 +133,7 @@ def mkdir_p(path: AnyPath):
             raise Exception("mkdir needs permission")
 
 
-def save_preview(path: AnyPath, post_txt: str, url: str):
+def save_preview(path: str, post_txt: str, url: str):
     # put preview into HTML template
     script_dir = os.path.dirname(__file__)
     f = open(os.path.join(script_dir, "template.html"), "r")
@@ -142,7 +146,7 @@ def save_preview(path: AnyPath, post_txt: str, url: str):
         f.write(preview)
 
 
-def save_json(path: AnyPath, post_txt: str, tags: List[str], url: str):
+def save_json(path: str, post_txt: str, tags: List[str], url: str):
     with open(path, "w") as f:
         f.write(
             json.dumps(
@@ -197,7 +201,7 @@ def list_post_links(page: int, sortby, c: pycurl.Curl):
 
 def get_file_path(post_id: int) -> str:
     directory = f"./tmp/{post_id % DIVISIONS}"
-    return os.path.join(directory, file_prefix, str(post_id))
+    return os.path.join(directory, file_prefix) + str(post_id)
 
 
 def process_post(
