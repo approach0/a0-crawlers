@@ -20,36 +20,37 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
 root_url = "https://artofproblemsolving.com"
-file_prefix = 'aops'
+file_prefix = "aops"
 
-vt100_BLUE = '\033[94m'
-vt100_WARNING = '\033[93m'
-vt100_RESET = '\033[0m'
+vt100_BLUE = "\033[94m"
+vt100_WARNING = "\033[93m"
+vt100_RESET = "\033[0m"
 DIVISIONS = 500
 
 # load parser globally for sharing, it is painfully slow
 slimit_parser = Parser()
 
-def print_err(err_str):
-    f = open("error.log", "a")
-    print(vt100_WARNING)
-    err_str = "[error] " + err_str
-    f.write(err_str + '\n')
-    print(err_str)
-    print(vt100_RESET)
-    f.close()
 
-def curl(sub_url, c, post = None):
+def print_err(err_str: str):
+    with open("error.log", "a") as f:
+        print(vt100_WARNING)
+        err_str = f"[error] {err_str}\n"
+        f.write(err_str)
+        print(err_str)
+        print(vt100_RESET)
+
+
+def curl(sub_url: str, c, post=None):
     ua = UserAgent()
     buf = BytesIO()
-    print('[curl] %s' % sub_url)
-    url = root_url + sub_url
-    url = url.encode('iso-8859-1')
-    c.setopt(c.HTTPHEADER, ['User-agent: ' + ua.random])
+    print(f"[curl] {sub_url}")
+    url = f"{root_url}{sub_url}"
+    url = url.encode("iso-8859-1")
+    c.setopt(c.HTTPHEADER, [f"User-agent: {ua.random}"])
     c.setopt(c.URL, url)
     c.setopt(c.WRITEFUNCTION, buf.write)
     c.setopt(c.FOLLOWLOCATION, True)
-    #c.setopt(c.VERBOSE, True)
+    # c.setopt(c.VERBOSE, True)
     if post is not None:
         c.setopt(c.POST, 1)
         c.setopt(c.POSTFIELDS, urlencode(post))
@@ -58,9 +59,9 @@ def curl(sub_url, c, post = None):
         try:
             c.perform()
         except (KeyboardInterrupt, SystemExit):
-            print('user aborting...')
+            print("user aborting...")
             raise
-        except:
+        except Exception:
             errs = errs + 1
             if errs > 3:
                 buf.close()
@@ -72,37 +73,41 @@ def curl(sub_url, c, post = None):
     buf.close()
     return res_str
 
+
 def parse_op_name(obj):
     if isinstance(obj, ast.DotAccessor):
         if isinstance(obj.node, ast.Identifier):
-            l = obj.node.value + "." + obj.identifier.value
+            l = f"{obj.node.value}.{obj.identifier.value}"
         else:
-            l = parse_op_name(obj.node) + "." + obj.identifier.value
+            l = f"{parse_op_name(obj.node)}.{obj.identifier.value}"
     elif isinstance(obj, ast.String):
         l = obj.value
         # no using strip here, because it can remove more than 1
         # instance of quotes, which is not desired and can cause issues
         if l.startswith('"') and l.endswith('"'):
             l = l[1:-1]
-        l = l.encode().decode('unicode_escape')
-    elif hasattr(obj, 'value'):
+        l = l.encode().decode("unicode_escape")
+    elif hasattr(obj, "value"):
         l = obj.value
     else:
         l = "<UnknownName>"
     return l
 
+
 # In AoPS post_canonical field, some weird LaTeX macro are used,
 # we need to replace them to commonly used LaTeX symbols.
-def convert_canonical_tex(s):
-    s = s.replace('\\minus{}','-')
-    s = s.replace('\\plus{}', '+')
-    s = s.replace('\\equal{}', '=')
-    s = s.replace('\\/', '/')
-    return s
+def convert_canonical_tex(s: str) -> str:
+    return (
+        s.replace("\\minus{}", "-")
+        .replace("\\plus{}", "+")
+        .replace("\\equal{}", "=")
+        .replace("\\/", "/")
+    )
+
 
 def parse_node(node):
     ret = {}
-    if hasattr(node, 'value') or isinstance(node, ast.DotAccessor):
+    if hasattr(node, "value") or isinstance(node, ast.DotAccessor):
         return parse_op_name(node)
     if isinstance(node, ast.Object):
         for prop in node.properties:
@@ -131,11 +136,12 @@ def parse_node(node):
         return "<UnknownRight>"
     return ret
 
+
 def get_aops_data(page):
     s = BeautifulSoup(page, "html.parser")
     parser = slimit_parser
-    for script in s.findAll('script'):
-        if 'AoPS.bootstrap_data' in script.string:
+    for script in s.findAll("script"):
+        if "AoPS.bootstrap_data" in script.string:
             try:
                 tree = parser.parse(script.string)
                 parsed = parse_node(tree)
@@ -145,46 +151,45 @@ def get_aops_data(page):
 
     return None
 
+
 def crawl_topic_page(sub_url, category_id, topic_id, c, extra_opt):
     try:
         topic_page = curl(sub_url, c)
-    except:
+    except Exception:
         raise
 
     parsed = get_aops_data(topic_page)
-    topic_data = parsed['AoPS.bootstrap_data']['preload_cmty_data']['topic_data']
-    session_data = parsed['AoPS.session']
+    topic_data = parsed["AoPS.bootstrap_data"]["preload_cmty_data"]["topic_data"]
+    session_data = parsed["AoPS.session"]
 
     # get title
-    title = html.unescape(topic_data['topic_title'])
+    title = html.unescape(topic_data["topic_title"])
 
-    num_posts = int(topic_data['num_posts'])
-    posts_data_tmp = topic_data['posts_data']
+    num_posts = int(topic_data["num_posts"])
+    posts_data_tmp = topic_data["posts_data"]
     posts_data = []
 
     # now this is a bit tricky, but if there are more posts
     # than we received, AoPS sens first 15 and last 15 posts,
     # remove all posts that should be shown only from the end
     for post in posts_data_tmp:
-        if post['show_from_start'] == 'true':
+        if post["show_from_start"] == "true":
             posts_data.append(post)
 
     fetched_posts = 0
     while fetched_posts < num_posts and (len(posts_data) > 0):
-        post_number = posts_data[0]['post_number']
-        post_id     = posts_data[0]['post_id']
+        post_number = posts_data[0]["post_number"]
+        post_id = posts_data[0]["post_id"]
         # compose title
         topic_txt = title
-        if post_number != '1':
-            topic_txt += ' ' + ('(posts after #%s)' % post_number)
-        topic_txt += '\n\n'
+        if post_number != "1":
+            topic_txt += " (posts after #{post_number})"
+        topic_txt += "\n\n"
         # get posts
         for post in posts_data:
-            topic_txt += post['post_canonical']
-            topic_txt += '\n\n'
+            topic_txt += f"{post['post_canonical']}\n\n"
         # save posts
-        post_url = '/community/'
-        post_url += 'c{}h{}p{}'.format(category_id, topic_id, post_id)
+        post_url = f"/community/c{category_id}h{topic_id}p{post_id}"
         full_url = root_url + post_url
         file_path = get_file_path(category_id, topic_id, post_id)
         process_topic(file_path, topic_txt, full_url, extra_opt)
@@ -194,26 +199,28 @@ def crawl_topic_page(sub_url, category_id, topic_id, c, extra_opt):
 
         if fetched_posts < num_posts:
             # it is not ending, we need to request for more posts...
-            postfields = {"topic_id": topic_id,
-                          "direction": "forwards",
-                          "start_post_id": -1,
-                          "start_post_num": fetched_posts + 1,
-                          "show_from_time": -1,
-                          "num_to_fetch": 50,
-                          "a": "fetch_posts_for_topic",
-                          "aops_logged_in": "false",
-                          "aops_user_id": session_data['user_id'],
-                          "aops_session_id": session_data['id']
-                          }
+            postfields = {
+                "topic_id": topic_id,
+                "direction": "forwards",
+                "start_post_id": -1,
+                "start_post_num": fetched_posts + 1,
+                "show_from_time": -1,
+                "num_to_fetch": 50,
+                "a": "fetch_posts_for_topic",
+                "aops_logged_in": "false",
+                "aops_user_id": session_data["user_id"],
+                "aops_session_id": session_data["id"],
+            }
 
-            sub_url = '/m/community/ajax.php'
+            sub_url = "/m/community/ajax.php"
             topic_page = curl(sub_url, c, post=postfields)
             parsed = json.loads(topic_page.decode("utf-8"))
-            posts_data = parsed['response']['posts']
+            posts_data = parsed["response"]["posts"]
             # sleep to avoid over-frequent request.
             time.sleep(0.6)
 
     return topic_txt
+
 
 def mkdir_p(path):
     try:
@@ -224,7 +231,8 @@ def mkdir_p(path):
         else:
             raise Exception("mkdir needs permission")
 
-def save_preview(path, topic_txt, url):
+
+def save_preview(path: str, topic_txt: str, url: str):
     # put preview into HTML template
     f = open("template.html", "r")
     fmt_str = f.read()
@@ -233,97 +241,100 @@ def save_preview(path, topic_txt, url):
     preview = fmt_str.replace("{PREVIEW}", topic_txt)
     preview = preview.replace("{URL}", url)
     # save preview
-    f = open(path, "w", encoding="utf8")
-    f.write(preview)
-    f.close()
+    with open(path, "w", encoding="utf8") as f:
+        f.write(preview)
 
-def save_json(path, topic_txt, url):
-    f = open(path, "w")
-    f.write(json.dumps({
-        "url": url,
-        "text": topic_txt
-    }, sort_keys=True))
-    f.close()
+
+def save_json(path: str, topic_txt, url):
+    with open(path, "w") as f:
+        f.write(json.dumps({"url": url, "text": topic_txt}, sort_keys=True))
+
 
 def get_curl():
     c = pycurl.Curl()
     c.setopt(c.CONNECTTIMEOUT, 8)
     c.setopt(c.TIMEOUT, 10)
-    c.setopt(c.COOKIEJAR, file_prefix + '-cookie.tmp')
-    c.setopt(c.COOKIEFILE, file_prefix + '-cookie.tmp')
+    c.setopt(c.COOKIEJAR, file_prefix + "-cookie.tmp")
+    c.setopt(c.COOKIEFILE, file_prefix + "-cookie.tmp")
     c.setopt(c.CAINFO, certifi.where())
 
     # redirect on 3XX error
     c.setopt(c.FOLLOWLOCATION, 1)
     return c
 
+
 def list_category_topics(category, newest, oldest, c):
-    #first access the page to acquire session id
-    sub_url = '/community/'
+    # first access the page to acquire session id
+    sub_url = "/community/"
 
     community_page = curl(sub_url, c)
 
     parsed = get_aops_data(community_page)
-    session = parsed['AoPS.session']
+    session = parsed["AoPS.session"]
     if session is None:
         raise Exception("AoPS server format unexpected.")
 
-    session_id = session['id']
-    user_id = session['user_id']
-    server_time = int(parsed['AoPS.bootstrap_data']['init_time'])
+    session_id = session["id"]
+    user_id = session["user_id"]
+    server_time = int(parsed["AoPS.bootstrap_data"]["init_time"])
 
     fetch_after = server_time - oldest * 24 * 60 * 60
     fetch_before = server_time - newest * 24 * 60 * 60
     while fetch_before >= fetch_after:
         print(vt100_BLUE)
-        print("[category] %d, [before] %s, [after] %s " %
-              (category,
-               time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(fetch_before)),
-               time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(fetch_after))))
+        print(
+            f"[category] {category},",
+            "[before]",
+            f'{time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(fetch_before))},',
+            "[after]",
+            time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(fetch_after)),
+        )
         print(vt100_RESET)
-        sub_url = '/m/community/ajax.php'
+        sub_url = "/m/community/ajax.php"
 
-        postfields = {"category_type": "forum",
-                      "log_visit": 0,
-                      "required_tag": "",
-                      "fetch_before": fetch_before,
-                      "user_id": 0,
-                      "fetch_archived": 0,
-                      "fetch_announcements": 0,
-                      "category_id": category,
-                      "a": "fetch_topics",
-                      "aops_logged_in": "false",
-                      "aops_user_id": user_id,
-                      "aops_session_id": session_id
-                      }
+        postfields = {
+            "category_type": "forum",
+            "log_visit": 0,
+            "required_tag": "",
+            "fetch_before": fetch_before,
+            "user_id": 0,
+            "fetch_archived": 0,
+            "fetch_announcements": 0,
+            "category_id": category,
+            "a": "fetch_topics",
+            "aops_logged_in": "false",
+            "aops_user_id": user_id,
+            "aops_session_id": session_id,
+        }
 
         try:
             navi_page = curl(sub_url, c, post=postfields)
             parsed = json.loads(navi_page.decode("utf-8"))
 
-            resp = parsed['response']
-            if 'no_more_topics' in resp and resp['no_more_topics']:
+            resp = parsed["response"]
+            if "no_more_topics" in resp and resp["no_more_topics"]:
                 break
 
             # check response validity
-            if 'topics' not in resp:
+            if "topics" not in resp:
                 raise Exception("no key in response.")
 
-            for topic in resp['topics']:
-                fetch_before = int(topic['last_post_time'])
+            for topic in resp["topics"]:
+                fetch_before = int(topic["last_post_time"])
                 yield (category, topic, None)
         except Exception as e:
             yield (category, None, e)
 
-def get_file_path(category_id, topic_id, post_id):
-    directory = './tmp/' + str(topic_id % DIVISIONS)
-    return directory + '/' + file_prefix + (('-c%s' + 'h%d' + 'p%s') %
-        (category_id, topic_id, post_id))
 
-def process_topic(file_path, topic_txt, url, extra_opt):
+def get_file_path(category_id, topic_id, post_id):
+    directory = f"./tmp/{topic_id % DIVISIONS}"
+    return f"{directory}/{file_prefix}-c{category_id}h{topic_id}p{post_id}"
+
+
+def process_topic(file_path: str, topic_txt: str, url: str, extra_opt):
     try:
         mkdir_p(os.path.dirname(file_path))
-    except:
+    except Exception:
         raise
     # process TeX mode pieces
     topic_txt = convert_canonical_tex(topic_txt)
@@ -333,21 +344,22 @@ def process_topic(file_path, topic_txt, url, extra_opt):
 
     # do not touch time stamp if previously
     # an identical file already exists.
-    jsonfile = file_path + ".json"
+    jsonfile = f"{file_path}.json"
     if os.path.isfile(jsonfile):
-        print('[exists]' + jsonfile)
-        save_json(file_prefix + '.tmp', topic_txt, url)
-        if filecmp.cmp(file_prefix + '.tmp', jsonfile):
+        print(f"[exists]{jsonfile}")
+        save_json(f"{file_prefix}.tmp", topic_txt, url)
+        if filecmp.cmp(f"{file_prefix}.tmp", jsonfile):
             # two files are identical, do not touch
-            print('[identical, no touch]')
+            print("[identical, no touch]")
             return
         else:
-            print('[overwrite]')
+            print("[overwrite]")
 
     # two files are different, save files
     save_json(jsonfile, topic_txt, url)
     if extra_opt["save-preview"]:
-        save_preview(file_path + '.html', topic_txt, url)
+        save_preview(f"{file_path}.html", topic_txt, url)
+
 
 def crawl_category_topics(category, newest, oldest, extra_opt):
     c = get_curl()
@@ -355,17 +367,17 @@ def crawl_category_topics(category, newest, oldest, extra_opt):
     succ_topics = 0
     for category, topic, e in list_category_topics(category, newest, oldest, c):
         if e is not None:
-            print_err("category %d error: %s" % (category, e))
+            print_err(f"category {category} error: {e}")
             break
         try:
-            topic_id = topic['topic_id']
-            sub_url = '/community/c{}h{}'.format(category, topic_id)
+            topic_id = topic["topic_id"]
+            sub_url = f"/community/c{category}h{topic_id}"
             crawl_topic_page(sub_url, category, topic_id, get_curl(), extra_opt)
         except (KeyboardInterrupt, SystemExit):
-            print('[abort]')
-            return 'abort'
+            print("[abort]")
+            return "abort"
         except BaseException as e:
-            print_err("topic %s (%s)" % (sub_url, str(e)))
+            print_err(f"topic {sub_url} ({e})")
             continue
 
         # count on success
@@ -375,26 +387,28 @@ def crawl_category_topics(category, newest, oldest, extra_opt):
         time.sleep(0.6)
 
         # log crawled topics
-        page_log = open(file_prefix + ".log", "a")
-        page_log.write('category %d, topic_id: %s \n' %
-                        (category, topic['topic_id']))
+        page_log = open(f"{file_prefix}.log", "a")
+        page_log.write(f'category {category}, topic_id: {topic["topic_id"]} \n')
         page_log.close()
-    return 'finish'
+    return "finish"
+
 
 def help(arg0):
-    print('DESCRIPTION: crawler script for artofproblemsolving.com.' \
-          '\n\n' \
-          'SYNOPSIS:\n' \
-          '%s [-n | --newest <days>] ' \
-          '[-o | --oldest <days>] ' \
-          '[-c | --category <cnum>] ' \
-          '[--patrol] ' \
-          '[--save-preview] ' \
-          '[--hook-script <script name>] ' \
-          '[-t | --topic <topic id>] ' \
-          '\n' % (arg0))
     print(
-    """Below are presumably the majority of topics on AoPS (as of May 2018):
+        "DESCRIPTION: crawler script for artofproblemsolving.com."
+        "\n\n"
+        "SYNOPSIS:\n"
+        f"{arg0} [-n | --newest <days>] "
+        "[-o | --oldest <days>] "
+        "[-c | --category <cnum>] "
+        "[--patrol] "
+        "[--save-preview] "
+        "[--hook-script <script name>] "
+        "[-t | --topic <topic id>] "
+        "\n"
+    )
+    print(
+        """Below are presumably the majority of topics on AoPS (as of May 2018):
 
     -c 3 (Middle School Math, > 33k topics)
     -c 4 (High School Math > 71k topics)
@@ -407,32 +421,32 @@ def help(arg0):
     category, for example:
 
         -n 0 -o 3650 (from now to 10 years back)
-    """)
+    """
+    )
     sys.exit(1)
+
 
 def main(args):
     argv = args[1:]
     try:
         opts, _ = getopt.getopt(
-            argv, "n:o:c:t:h", [
-                'newest=',
-                'oldest=',
-                'category=',
-                'topic=',
-                'patrol',
-                'save-preview',
-                'hook-script='
-            ]
+            argv,
+            "n:o:c:t:h",
+            [
+                "newest=",
+                "oldest=",
+                "category=",
+                "topic=",
+                "patrol",
+                "save-preview",
+                "hook-script=",
+            ],
         )
-    except:
+    except Exception:
         help(args[0])
 
     # default arguments
-    extra_opt = {
-        "hookscript": "",
-        "patrol": False,
-        "save-preview": False
-    }
+    extra_opt = {"hookscript": "", "patrol": False, "save-preview": False}
     category = -1
     topic = -1
     newest = 0
@@ -461,11 +475,11 @@ def main(args):
             help(args[0])
 
     if topic > 0:
-        sub_url = "/community/c{}h{}".format(category, topic)
+        sub_url = f"/community/c{category}h{topic}"
         crawl_topic_page(sub_url, category, topic, get_curl(), extra_opt)
         exit(0)
 
-    if (category > 0):
+    if category > 0:
         while True:
             # crawling newest pages
             try:
@@ -474,20 +488,21 @@ def main(args):
                 print_err(str(e))
                 quit(1)
 
-            if r == 'abort':
+            if r == "abort":
                 break
 
             # now it is the time to invoke hookscript.
             if extra_opt["hookscript"]:
                 os.system(extra_opt["hookscript"])
 
-            if extra_opt['patrol']:
+            if extra_opt["patrol"]:
                 # if patrol mode is enabled, loop forever.
                 pass
             else:
                 break
     else:
         help(args[0])
+
 
 if __name__ == "__main__":
     main(sys.argv)
