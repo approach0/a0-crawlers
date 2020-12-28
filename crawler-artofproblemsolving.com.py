@@ -32,7 +32,7 @@ slimit_parser = Parser()
 
 
 def print_err(err_str: str):
-    with open("error.log", "w") as f:
+    with open("error.log", "a") as f:
         print(vt100_WARNING)
         err_str = f"[error] {err_str}\n"
         f.write(err_str)
@@ -159,9 +159,7 @@ def crawl_topic_page(sub_url, category_id, topic_id, c, extra_opt):
         raise
 
     parsed = get_aops_data(topic_page)
-    topic_data = parsed["AoPS.bootstrap_data"]["preload_cmty_data"][
-        "topic_data"
-    ]
+    topic_data = parsed["AoPS.bootstrap_data"]["preload_cmty_data"]["topic_data"]
     session_data = parsed["AoPS.session"]
 
     # get title
