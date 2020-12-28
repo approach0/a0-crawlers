@@ -32,20 +32,19 @@ slimit_parser = Parser()
 
 
 def print_err(err_str: str):
-    f = open("error.log", "a")
-    print(vt100_WARNING)
-    err_str = f"[error] {err_str}"
-    f.write(err_str + "\n")
-    print(err_str)
-    print(vt100_RESET)
-    f.close()
+    with open("error.log", "w") as f:
+        print(vt100_WARNING)
+        err_str = f"[error] {err_str}\n"
+        f.write(err_str)
+        print(err_str)
+        print(vt100_RESET)
 
 
-def curl(sub_url, c, post=None):
+def curl(sub_url: str, c, post=None):
     ua = UserAgent()
     buf = BytesIO()
     print(f"[curl] {sub_url}")
-    url = root_url + sub_url
+    url = f"{root_url}{sub_url}"
     url = url.encode("iso-8859-1")
     c.setopt(c.HTTPHEADER, [f"User-agent: {ua.random}"])
     c.setopt(c.URL, url)
@@ -228,7 +227,7 @@ def mkdir_p(path):
             raise Exception("mkdir needs permission")
 
 
-def save_preview(path, topic_txt, url):
+def save_preview(path: str, topic_txt: str, url: str):
     # put preview into HTML template
     f = open("template.html", "r")
     fmt_str = f.read()
@@ -241,7 +240,7 @@ def save_preview(path, topic_txt, url):
         f.write(preview)
 
 
-def save_json(path, topic_txt, url):
+def save_json(path: str, topic_txt, url):
     with open(path, "w") as f:
         f.write(json.dumps({"url": url, "text": topic_txt}, sort_keys=True))
 
@@ -321,7 +320,7 @@ def get_file_path(category_id, topic_id, post_id):
     return f"{directory}/{file_prefix}-c{category_id}h{topic_id}p{post_id}"
 
 
-def process_topic(file_path, topic_txt, url, extra_opt):
+def process_topic(file_path: str, topic_txt: str, url: str, extra_opt):
     try:
         mkdir_p(os.path.dirname(file_path))
     except Exception:
