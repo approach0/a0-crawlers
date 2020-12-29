@@ -17,8 +17,17 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from typing import Dict, List, Tuple, Union
 
-root_url = "https://math.stackexchange.com"
+SE_SITE_ROOT = {
+    "mse": "https://math.stackexchange.com",
+    "matheducators": "https://matheducators.stackexchange.com",
+    "mof": "https://mathoverflow.net",
+    "stats": "https://stats.stackexchange.com",
+    "physics": "https://physics.stackexchange.com"
+}
+
+# default target StackExchange site
 file_prefix = "mse"
+root_url = SE_SITE_ROOT[file_prefix]
 
 vt100_BLUE = "\033[94m"
 vt100_WARNING = "\033[93m"
@@ -294,10 +303,12 @@ def crawl_pages(
 
 def help(arg0: str):
     print(
-        "DESCRIPTION: crawler script for math.stackexchange.com."
+        "DESCRIPTION: crawler script for StackExchange"
         "\n\n"
         "SYNOPSIS:\n"
-        f"{arg0} [-b | --begin-page <page>] "
+        f"{arg0} "
+        f"[--site {' | '.join([k for k in SE_SITE_ROOT.keys()])} ] "
+        "[-b | --begin-page <page>] "
         "[-e | --end-page <page>] "
         "[--no-overwrite] "
         "[--patrol] "
@@ -314,8 +325,9 @@ def main(args: List[str]):
     try:
         opts, _ = getopt.getopt(
             argv,
-            "b:e:p:h",
+            "s:b:e:p:h",
             [
+                "site=",
                 "begin-page=",
                 "end-page=",
                 "post=",
@@ -329,6 +341,8 @@ def main(args: List[str]):
         help(args[0])
 
     # default arguments
+    global file_prefix
+    global root_url
     extra_opt = {
         "overwrite": True,
         "hookscript": "",
@@ -360,6 +374,9 @@ def main(args: List[str]):
             extra_opt["save-preview"] = True
         elif opt in ("--hook-script"):
             extra_opt["hookscript"] = arg
+        elif opt in ("--site"):
+            file_prefix = arg
+            root_url = SE_SITE_ROOT[arg]
         else:
             help(args[0])
 
