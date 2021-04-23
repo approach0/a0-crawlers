@@ -15,3 +15,9 @@ $ ./crawler-stackexchange.py -h
 We find it useful to implement "dedicated" crawlers instead of site-agnostic crawlers for better coverage and quality of corpus. Another advantage of doing in this way is being able to distribute work and track crawling process more efficiently.
 
 Welcome anyone to contribute their own crawler and submit to this repository. Each crawler should at least implement a `-h` or `--help` option to show help messages, and a targeting site range like `--begin-page` and `--end-page` for dividing workload.
+
+### Did you know?
+What does Google bot UserAgent string look like?
+```
+Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.80 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+```
