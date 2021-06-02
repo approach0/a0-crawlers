@@ -51,19 +51,23 @@ def curl(sub_url: str, c):
     url = url.encode("iso-8859-1")
     c.setopt(c.URL, url)
     c.setopt(c.WRITEFUNCTION, buf.write)
-    errs = 0
+    retry_cnt = 0
     while True:
         try:
             c.perform()
         except (KeyboardInterrupt, SystemExit):
             print("user aborting...")
             raise
-        except:
-            errs = errs + 1
-            if errs > 3:
+        except Exception as err:
+            if retry_cnt < 10:
+                retry_cnt += 1
+            else:
                 buf.close()
                 raise
-            print("[curl] try again...")
+            wait_time = retry_cnt * 10.0
+            print(err)
+            print(f"[curl] sleep {wait_time} and try again...")
+            time.sleep(wait_time)
             continue
         break
     res_str = buf.getvalue()
@@ -183,8 +187,8 @@ def list_post_links(page: int, sortby, c: pycurl.Curl):
     while True:
         try:
             navi_page = curl(sub_url, c)
-        except Exception as e:
-            yield (None, None, e)
+        except Exception as err:
+            yield (None, None, err)
         s = BeautifulSoup(navi_page, "html.parser")
         summary_tags = s.find_all("div", {"class": "question-summary"})
 
@@ -194,7 +198,7 @@ def list_post_links(page: int, sortby, c: pycurl.Curl):
             if retry_cnt < 60:
                 retry_cnt += 1
             wait_time = retry_cnt * 10.0
-            print(f"too frequent request? Wait {wait_time} sec ...")
+            print(f"Request too frequent? Wait {wait_time} sec ...")
             time.sleep(wait_time)
         else:
             break
@@ -259,8 +263,8 @@ def crawl_pages(
         print(f"[page] {page} / {end} order by {sortby}")
         print(vt100_RESET)
         succ_posts = 0
-        for div_id, sub_url, e in list_post_links(page, sortby, c):
-            if e is not None:
+        for div_id, sub_url, err in list_post_links(page, sortby, c):
+            if err is not None:
                 print_err(f"page {page}")
                 break
             res = re.search("question-summary-(\d+)", div_id)
