@@ -49,8 +49,10 @@ def curl(sub_url: str, c):
     url = f"{root_url}{sub_url}"
     print(f"[curl] {url}")
     url = url.encode("iso-8859-1")
+    c.setopt(c.HTTPHEADER, [f"User-agent: curl/7.77.0"])
     c.setopt(c.URL, url)
     c.setopt(c.WRITEFUNCTION, buf.write)
+    #c.setopt(c.VERBOSE, True)
     retry_cnt = 0
     while True:
         try:
@@ -178,6 +180,18 @@ def get_curl():
     c.setopt(c.FOLLOWLOCATION, 1)
     return c
 
+
+def crawl_total_pages():
+    c = get_curl()
+    try:
+        questions_page = curl('/questions?tab=newest', c)
+        s = BeautifulSoup(questions_page, "html.parser")
+        pagers = s.find("div", {"class": "pager"}).find_all('a')
+        return int(pagers[-2].text)
+
+    except Exception as err:
+        print(err, file=sys.stderr)
+        return 0
 
 def list_post_links(page: int, sortby, c: pycurl.Curl):
     # sortby can be 'newest', 'active' etc.
@@ -334,6 +348,7 @@ def main(args: List[str]):
                 "site=",
                 "begin-page=",
                 "end-page=",
+                "total-pages",
                 "post=",
                 "no-overwrite",
                 "patrol",
@@ -363,6 +378,10 @@ def main(args: List[str]):
         elif opt in ("-e", "--end-page"):
             end_page = int(arg)
             continue
+        elif opt in ("--total-pages"):
+            total_pages = crawl_total_pages()
+            print('Total pages:', total_pages)
+            quit(0)
         elif opt in ("-p", "--post"):
             sub_url = "/questions/" + arg
             sub_url = sub_url + "?noredirect=1"
