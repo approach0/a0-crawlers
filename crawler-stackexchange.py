@@ -10,6 +10,7 @@ import json
 import sys
 import getopt
 import filecmp
+import math
 from replace_post_tex import replace_dollar_tex
 from replace_post_tex import replace_display_tex
 from replace_post_tex import replace_inline_tex
@@ -310,7 +311,7 @@ def crawl_pages(
             # count on success
             succ_posts += 1
 
-            # sleep to avoid over-frequent request.
+            # sleep to avoid request too frequently.
             time.sleep(1.5)
 
         # log crawled page number
@@ -328,6 +329,8 @@ def help(arg0: str):
         f"[--site {' | '.join([k for k in SE_SITE_ROOT.keys()])} ] "
         "[-b | --begin-page <page>] "
         "[-e | --end-page <page>] "
+        "[-c | --crawler <crawler-number>/<total-crawlers>] "
+        "[--total-pages] "
         "[--no-overwrite] "
         "[--patrol] "
         "[--save-preview] "
@@ -343,11 +346,12 @@ def main(args: List[str]):
     try:
         opts, _ = getopt.getopt(
             argv,
-            "s:b:e:p:h",
+            "s:b:e:p:c:h",
             [
                 "site=",
                 "begin-page=",
                 "end-page=",
+                "crawler=",
                 "total-pages",
                 "post=",
                 "no-overwrite",
@@ -377,6 +381,13 @@ def main(args: List[str]):
             continue
         elif opt in ("-e", "--end-page"):
             end_page = int(arg)
+            continue
+        elif opt in ("-c", "--crawler"):
+            crawler, total_crawlers = map(lambda x: int(x), arg.split('/'))
+            total_pages = crawl_total_pages()
+            pages_per_crawler = math.ceil(total_pages / total_crawlers)
+            begin_page = 1 + (crawler - 1) * pages_per_crawler
+            end_page = crawler * pages_per_crawler
             continue
         elif opt in ("--total-pages"):
             total_pages = crawl_total_pages()
