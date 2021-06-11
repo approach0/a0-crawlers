@@ -260,7 +260,7 @@ def crawl_pages(
     c = get_curl()
     for page in range(start, end + 1):
         print(vt100_BLUE)
-        print(f"[page] {page} / {end} order by {sortby}")
+        print(f"page#{page} in [{start}, {end}]  order by {sortby}")
         print(vt100_RESET)
         succ_posts = 0
         for div_id, sub_url, err in list_post_links(page, sortby, c):
