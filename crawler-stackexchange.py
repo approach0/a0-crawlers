@@ -107,18 +107,15 @@ def crawl_post_page(sub_url: str, c: pycurl.Curl) -> Tuple[str, List[str]]:
         raise Exception("question header is None")
     title = str(question_header.h1.string)
     post_txt = f"{title}\n\n"
-    # get question
+    # get question and comments
     question = s.find(id="question")
     if question is None:
         raise Exception("No question tag found.")
+    question_passage = extract_p_tag_text(question)
+    comments_passage = extract_comments_text(question)
     post_txt += (
-        f"{extract_p_tag_text(question)}\n{extract_comments_text(question)}\n"
+        f"{question_passage}\n{comments_passage}\n"
     )
-    post_txt += extract_p_tag_text(question)
-    post_txt += '\n'
-    # get question comments
-    post_txt += extract_comments_text(question)
-    post_txt += '\n'
 
     # get post tags
     tags = question.find_all("a", class_="post-tag")
