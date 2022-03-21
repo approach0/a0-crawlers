@@ -183,7 +183,7 @@ def crawl_topic_page(sub_url, category_id, topic_id, c, extra_opt):
         # compose title
         topic_txt = title
         if post_number != "1":
-            topic_txt += " (posts after #{post_number})"
+            topic_txt += f" (posts after #{post_number})"
         topic_txt += "\n\n"
         # get posts
         for post in posts_data:
