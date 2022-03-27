@@ -5,6 +5,7 @@ import requests
 import argparse
 import configparser
 from tqdm import tqdm
+from urllib.parse import urlparse
 from collections.abc import Iterable
 
 
@@ -95,20 +96,24 @@ def go_thro_pipelines(config, j, value):
         raise NotImplemented
 
 
-def pipeline__use_lancaster_stemmer(config, field_val):
+def pipeline__url2site(val):
+    return urlparse(val)[1]
+
+
+def pipeline__use_lancaster_stemmer(config, val):
     pya0_path = config['pya0_path']
     sys.path.insert(0, pya0_path)
     from pya0 import preprocess, use_stemmer
     use_stemmer(name='lancaster')
-    return preprocess(field_val, expansion=False)
+    return preprocess(val, expansion=False)
 
 
-def pipeline__use_porter_stemmer(config, field_val):
+def pipeline__use_porter_stemmer(config, val):
     pya0_path = config['pya0_path']
     sys.path.insert(0, pya0_path)
     from pya0 import preprocess, use_stemmer
     use_stemmer(name='porter')
-    return preprocess(field_val, expansion=False)
+    return preprocess(val, expansion=False)
 
 
 if __name__ == '__main__':
