@@ -33,16 +33,16 @@ def line_walk(directory, allow_extensions, max_items):
                     yield line
 
 
-def send_json(url, json):
+def send_json(url, send_j):
     headers = {'content-type': 'application/json'}
-    r = requests.post(url, json=json, headers=headers)
+    r = requests.post(url, json=send_j, headers=headers)
     return json.loads(r.content.decode("utf-8"))
 
 
-def send_to_each_indexd(indexd_urls, json, abort_value=1):
+def send_to_each_indexd(indexd_urls, send_j, abort_value=1):
     for url in indexd_urls:
         try:
-            res = send_json(url, json)
+            res = send_json(url, send_j)
         except Exception as err:
             print(err)
             if abort_value >= 0:
