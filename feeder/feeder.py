@@ -117,6 +117,7 @@ def pipeline__use_porter_stemmer(config, val):
 
 
 if __name__ == '__main__':
+    default_url = 'http://localhost:8934/index'
     parser = argparse.ArgumentParser(
         description='Approach Zero Index Daemon JSON Feeder.'
     )
@@ -131,7 +132,8 @@ if __name__ == '__main__':
 
     # optionals
     parser.add_argument(
-        '--indexd-url', help='index daemon URL.', type=str, action='append'
+        '--indexd-url', help=f'index daemon URL. (default: {default_url})',
+        type=str, action='append'
     )
     parser.add_argument(
         '--corpus', help='corpus name', type=str, default='DEFAULT'
