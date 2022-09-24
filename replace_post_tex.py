@@ -52,5 +52,18 @@ def replace_inline_tex(s):
 	regex = re.compile(r'\\\((.+)\\\)')
 	return re.sub(regex, r"[imath]\1[/imath]", s)
 
+def unwrap_isolated_tex_group(text, group_name):
+	regex = re.compile(
+		r"\\begin{" + group_name +
+		r"\*?}(.+?)\\end{" + group_name +
+		r"\*?}(?!\s+\[/imath\])", re.DOTALL) # negative lookahead
+	return re.sub(regex, r"[imath]\1[/imath]", text)
+
+def unwrap_isolated_tex_groups(text,
+	groups=['align', 'alignat', 'equation', 'gather']):
+	for grp in groups:
+		text = unwrap_isolated_tex_group(text, grp)
+	return text
+
 # curl http://math.stackexchange.com/questions/1886701/justify-a-function-series-is-approximating-another-function
 # to test everything.
