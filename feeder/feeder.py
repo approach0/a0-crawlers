@@ -68,7 +68,11 @@ def feed(indexd_urls, args, config):
     walker = line_walk(args.CORPUS_PATH, allow_extensions, max_items)
     progress = tqdm(walker, total=cnt)
     for line in progress:
-        j = json.loads(line)
+        try:
+            j = json.loads(line)
+        except Exception as e:
+            print(e, '\n', line)
+            continue
         if args.preview:
             print('Source:', j)
         send_j = {}
