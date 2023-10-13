@@ -20,18 +20,27 @@ def file_walk(directory_or_filepath):
             yield os.path.join(dirname, f), ext
 
 
-def line_walk(directory, allow_extensions, max_items):
+def json_walk(directory, allow_extensions, max_items):
     cnt = 0
     for path, ext in file_walk(directory):
         if ext not in allow_extensions:
             continue
         with open(path, 'r') as fh:
-            for ln, line in enumerate(fh):
+            if ext == 'jsonl':
+                for ln, line in enumerate(fh):
+                    cnt += 1
+                    if cnt > max_items:
+                        return
+                    else:
+                        yield f'{path}:{ln}', line
+            elif ext == 'json':
                 cnt += 1
                 if cnt > max_items:
                     return
                 else:
-                    yield f'{path}:{ln}', line
+                    yield f'{path}', fh.read()
+            else:
+                raise NotImplemented
 
 
 def send_json(url, send_j):
@@ -60,28 +69,27 @@ def feed(indexd_urls, args, config):
     if progress_bar:
         print('Counting total #documents ...')
         cnt = len(list(_ for _ in
-            line_walk(args.CORPUS_PATH, allow_extensions, max_items))
+            json_walk(args.CORPUS_PATH, allow_extensions, max_items))
         )
     else:
         cnt = None
 
-    walker = line_walk(args.CORPUS_PATH, allow_extensions, max_items)
+    walker = json_walk(args.CORPUS_PATH, allow_extensions, max_items)
     progress = tqdm(walker, total=cnt)
-    for src_id, line in progress:
+    for src_id, j_str in progress:
         try:
-            j = json.loads(line)
+            j = json.loads(j_str)
         except Exception as e:
-            print(e, '\n', line)
+            print(e, '\n', j_str)
             continue
-        if args.preview:
-            print('Source:', j)
         send_j = {}
         for key, value in index_field_map.items():
             send_j[key] = go_thro_pipelines(config, src_id, j, value)
             if send_j[key] is not None:
                 send_j[key] = send_j[key].strip()
         if args.preview:
-            print('Preview:', send_j, end='\n\n')
+            print('src_id:', src_id)
+            print('preview:', send_j, end='\n\n')
             #print(send_j['content'])
         else:
             res = send_to_each_indexd(indexd_urls, send_j)
