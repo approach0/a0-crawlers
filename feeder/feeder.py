@@ -128,6 +128,11 @@ def pipeline__use_porter_stemmer(config, val):
     return preprocess(val, expansion=False)
 
 
+def pipeline__replace_dollars(config, val):
+    from replace_post_tex import replace_dollar_tex
+    return replace_dollar_tex(val)
+
+
 if __name__ == '__main__':
     default_url = 'http://localhost:8934/index'
     parser = argparse.ArgumentParser(
