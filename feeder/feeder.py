@@ -187,6 +187,6 @@ if __name__ == '__main__':
     feed(indexd_urls, args, section_config)
 
     # send BYE command on request
-    if args.bye:
+    if args.bye and not args.preview:
         print('\n Now, send BYE to terminate indexers ... \n')
         send_to_each_indexd(indexd_urls, {'cmd': 'BYE'}, abort_value=0)
