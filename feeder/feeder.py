@@ -26,12 +26,12 @@ def line_walk(directory, allow_extensions, max_items):
         if ext not in allow_extensions:
             continue
         with open(path, 'r') as fh:
-            for line in fh:
+            for ln, line in enumerate(fh):
                 cnt += 1
                 if cnt > max_items:
                     return
                 else:
-                    yield line
+                    yield f'{path}:{ln}', line
 
 
 def send_json(url, send_j):
@@ -67,7 +67,7 @@ def feed(indexd_urls, args, config):
 
     walker = line_walk(args.CORPUS_PATH, allow_extensions, max_items)
     progress = tqdm(walker, total=cnt)
-    for line in progress:
+    for src_id, line in progress:
         try:
             j = json.loads(line)
         except Exception as e:
@@ -77,7 +77,7 @@ def feed(indexd_urls, args, config):
             print('Source:', j)
         send_j = {}
         for key, value in index_field_map.items():
-            send_j[key] = go_thro_pipelines(config, j, value)
+            send_j[key] = go_thro_pipelines(config, src_id, j, value)
             if send_j[key] is not None:
                 send_j[key] = send_j[key].strip()
         if args.preview:
@@ -88,7 +88,7 @@ def feed(indexd_urls, args, config):
             progress.set_description(f"Indexed doc: {res['docid']}")
 
 
-def go_thro_pipelines(config, j, value):
+def go_thro_pipelines(config, src_id, j, value):
     if isinstance(value, str):
         return eval(value)
     elif isinstance(value, Iterable):
