@@ -202,7 +202,7 @@ def list_post_links(page: int, sortby, c: pycurl.Curl):
         except Exception as err:
             yield (None, None, err)
         s = BeautifulSoup(navi_page, "html.parser")
-        summary_tags = s.find_all("div", {"class": "question-summary"})
+        summary_tags = s.find_all("div", {"class": "s-post-summary"})
 
         # if server is showing us our frequency is too much...
         print(f"{len(summary_tags)} questions in this page")
@@ -216,7 +216,7 @@ def list_post_links(page: int, sortby, c: pycurl.Curl):
             break
 
     for div in summary_tags:
-        a_tag = div.find("a", {"class": "question-hyperlink"})
+        a_tag = div.find("a", {"class": "s-link"})
         if a_tag is None:
             continue
         elif not div.has_attr("id") or not a_tag.has_attr("href"):
@@ -225,6 +225,7 @@ def list_post_links(page: int, sortby, c: pycurl.Curl):
 
 
 def get_file_path(post_id: int) -> str:
+
     directory = f"./tmp/{post_id % DIVISIONS}"
     return os.path.join(directory, file_prefix) + str(post_id)
 
@@ -310,7 +311,6 @@ def crawl_pages(
 
             # sleep to avoid request too frequently.
             time.sleep(1.5)
-
         # log crawled page number
         with open(f"{file_prefix}.log", "a") as page_log:
             page_log.write(f"page {page}: {succ_posts} posts successful.\n")
