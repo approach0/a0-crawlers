@@ -28,6 +28,7 @@ def print_err(err_str: str):
         print(err_str)
         print(vt100_RESET)
 
+
 def curl(url: str, c):
     buf = BytesIO()
     url = url.encode("iso-8859-1")
@@ -57,6 +58,7 @@ def curl(url: str, c):
     buf.close()
     return res_str
 
+
 def extract_content(soup: BeautifulSoup) -> Dict[str, Union[str, int]]:
     content_data = {
         "forum": soup.title.text.split(" - ")[-2],
@@ -64,6 +66,7 @@ def extract_content(soup: BeautifulSoup) -> Dict[str, Union[str, int]]:
         "content": "\n".join([replace_dollar_tex(replace_inline_tex(replace_display_tex(msg.get_text()))) for msg in soup.select("td.t_f")])
     }
     return content_data
+
 
 def save_json(path: str, content_data: Dict[str, Union[str, int]], url: str):
     data = {
@@ -73,6 +76,7 @@ def save_json(path: str, content_data: Dict[str, Union[str, int]], url: str):
     }
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, sort_keys=True)
+
 
 def save_preview(path: str, content_data: Dict[str, Union[str, int]], url: str):
     # put preview into HTML template
@@ -85,6 +89,7 @@ def save_preview(path: str, content_data: Dict[str, Union[str, int]], url: str):
     with open(path, "w", encoding="utf-8") as f:
         f.write(preview)
 
+
 def get_curl():
     c = pycurl.Curl()
     c.setopt(c.CONNECTTIMEOUT, 8)
@@ -92,6 +97,7 @@ def get_curl():
     c.setopt(c.CAINFO, certifi.where())
     c.setopt(c.FOLLOWLOCATION, 1)
     return c
+
 
 def mkdir_p(path: str):
     try:
@@ -102,10 +108,12 @@ def mkdir_p(path: str):
         else:
             raise Exception("mkdir needs permission")
 
+
 def get_file_path(url: str) -> str:
     file_id = hash(url) % DIVISIONS
     directory = f"./tmp/{file_id}"
     return os.path.join(directory, file_prefix) + str(file_id)
+
 
 def process_page(url: str, c: pycurl.Curl):
     try:
@@ -124,6 +132,7 @@ def process_page(url: str, c: pycurl.Curl):
         save_preview(f"{file_path}.html", content_data, url)
     except Exception as err:
         print_err(f"Error processing {url}: {err}")
+
 
 def crawl_sitemap():
     c = get_curl()
