@@ -11,6 +11,7 @@ from replace_post_tex import replace_inline_tex
 from io import BytesIO
 from typing import Dict, List, Union
 import xml.etree.ElementTree as ET
+import re  # added for thread_id extraction
 
 root_url = "https://kuing.cjhb.site"
 file_prefix = "kuing"
@@ -110,9 +111,15 @@ def mkdir_p(path: str):
 
 
 def get_file_path(url: str) -> str:
-    file_id = hash(url) % DIVISIONS
-    directory = f"./tmp/{file_id}"
-    return os.path.join(directory, file_prefix) + str(file_id)
+    # extract thread_id from URL (e.g., thread-13712-1-1.html -> 13712)
+    match = re.search(r'thread-(\d+)', url)
+    if not match:
+        print_err(f"Cannot extract thread_id from URL: {url}")
+        return ""
+    # calculate directory based on thread_id
+    thread_id = int(match.group(1))
+    directory = f"./tmp/{thread_id % DIVISIONS}"
+    return os.path.join(directory, file_prefix) + str(thread_id)
 
 
 def process_page(url: str, c: pycurl.Curl):
