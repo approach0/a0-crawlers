@@ -61,10 +61,18 @@ def curl(url: str, c):
 
 
 def extract_content(soup: BeautifulSoup) -> Dict[str, Union[str, int]]:
+    title = re.sub(r"\s+", ' ', soup.select("h1.ts")[0].text).strip()
+    contents = []
+    for msg in soup.select("td.t_f"):
+        content = msg.get_text()
+        content = replace_display_tex(content)
+        content = replace_inline_tex(content)
+        content = replace_dollar_tex(content)
+        contents.append(content.strip())
     content_data = {
         "forum": soup.title.text.split(" - ")[-2],
         "keywords": soup.find('meta', {'name': 'keywords'})['content'] if soup.find('meta', {'name': 'keywords'}) else "",
-        "content": "\n".join([replace_dollar_tex(replace_inline_tex(replace_display_tex(msg.get_text()))) for msg in soup.select("td.t_f")])
+        "content": title + "\n\n" + "\n".join(contents)
     }
     return content_data
 
@@ -115,7 +123,7 @@ def get_file_path(url: str) -> str:
     match = re.search(r'thread-(\d+)', url)
     if not match:
         print_err(f"Cannot extract thread_id from URL: {url}")
-        return ""
+        assert ValueError
     # calculate directory based on thread_id
     thread_id = int(match.group(1))
     directory = f"./tmp/{thread_id % DIVISIONS}"
@@ -124,6 +132,7 @@ def get_file_path(url: str) -> str:
 
 def process_page(url: str, c: pycurl.Curl):
     try:
+        print('[processing url]', url)
         page_content = curl(url, c)
         soup = BeautifulSoup(page_content, "html.parser")
         for pstatus in soup.select("i.pstatus"):
